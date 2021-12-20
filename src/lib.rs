@@ -108,6 +108,14 @@ impl WgpuRenderer {
         })
     }
 
+    pub fn device(&self) -> &wgpu::Device {
+      self.device.as_ref()
+    }
+
+  pub fn scale(&self) -> f64 {
+    self.pipeline.scale
+  }
+
     pub fn set_size(&mut self, size: Size) {
         self.size = size;
         let sc_desc = wgpu::SurfaceConfiguration {
@@ -159,6 +167,9 @@ impl WgpuRenderer {
     pub(crate) fn take_encoder(&mut self) -> wgpu::CommandEncoder {
         self.encoder.take().unwrap()
     }
+  pub fn queue(&self) -> &wgpu::Queue {
+    &self.queue
+  }
 }
 
 pub struct Device {
