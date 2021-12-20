@@ -46,45 +46,45 @@ struct State {
 }
 
 pub struct RenderPassCtx<'ctx> {
-  encoder: CommandEncoder,
-  pub queue: &'ctx wgpu::Queue,
-  view: Rc<TextureView>,
-  msaa: &'ctx TextureView,
+    encoder: CommandEncoder,
+    pub queue: &'ctx wgpu::Queue,
+    view: Rc<TextureView>,
+    msaa: &'ctx TextureView,
 }
 
 impl <'ctx> RenderPassCtx<'ctx> {
-  /// Constructs a new [Self] to enable a custom render pass on the given [WgpuRenderContext].
-  fn new(label: &'static str, ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
+    /// Constructs a new [Self] to enable a custom render pass on the given [WgpuRenderContext].
+    fn new(label: &'static str, ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
 
-    let mut encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-      label: Some(label),
-    });
-    let view = ctx.wgpu_view()?;
-    Ok(Self {
-      encoder,
-      queue: &ctx.renderer.queue,
-      view: view,
-      msaa: &ctx.renderer.msaa,
-    })
-  }
+        let mut encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some(label),
+        });
+        let view = ctx.wgpu_view()?;
+        Ok(Self {
+            encoder,
+            queue: &ctx.renderer.queue,
+            view: view,
+            msaa: &ctx.renderer.msaa,
+        })
+    }
 
-  /// Generates a new [RenderPass] with the given label.
-  pub fn render_pass(&mut self, label: &'static str) -> RenderPass {
-    // TODO: Should the viewport stuff be set here?
+    /// Generates a new [RenderPass] with the given label.
+    pub fn render_pass(&mut self, label: &'static str) -> RenderPass {
+        // TODO: Should the viewport stuff be set here?
 
-    self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-      label: Some(label),
-      color_attachments: &[wgpu::RenderPassColorAttachment {
-        view: self.msaa,
-        resolve_target: Some(&self.view),
-        ops: wgpu::Operations {
-          load: wgpu::LoadOp::Load,
-          store: true,
-        }
-      }],
-      depth_stencil_attachment: None,
-    })
-  }
+        self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some(label),
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view: self.msaa,
+                resolve_target: Some(&self.view),
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                }
+            }],
+            depth_stencil_attachment: None,
+        })
+    }
 }
 
 impl<'a> WgpuRenderContext<'a> {
@@ -103,8 +103,8 @@ impl<'a> WgpuRenderContext<'a> {
             clip_stack: Vec::new(),
             primitives: Vec::new(),
             draw_command_buffers: Some(Vec::new()),
-          texture: None,
-          tex_view: None,
+            texture: None,
+            tex_view: None,
         }
     }
 
@@ -131,43 +131,43 @@ impl<'a> WgpuRenderContext<'a> {
         });
     }
 
-  pub fn wgpu_surface_format(&self) -> wgpu::TextureFormat {
-    self.renderer.format
-  }
-
-
-  pub fn wgpu_view(&mut self) -> Result<Rc<wgpu::TextureView>, piet::Error> {
-    if let Some(view) = self.tex_view.as_ref() {
-      return Ok(view.clone());
+    pub fn wgpu_surface_format(&self) -> wgpu::TextureFormat {
+        self.renderer.format
     }
-    let texture = self
-        .renderer
-        .surface
-        .get_current_texture()
-        .map_err(|e| piet::Error::NotSupported)?;
-    let view = Rc::new(texture
-        .texture
-        .create_view(&wgpu::TextureViewDescriptor::default()));
-    self.texture = Some(texture);
-    self.tex_view = Some(view.clone());
-    Ok(view)
-  }
 
-  /// Runs the given callback with a [RenderPassCtx] to enable a custom render pass.
-  pub fn custom_render_pass<F>(
-    &mut self, label: &'static str, usage: F) -> Result<(), piet::Error>
-    where F: FnOnce(&mut RenderPassCtx) -> Result<(), piet::Error> {
-    let mut pass_ctx = RenderPassCtx::new(label, self)?;
-    usage(&mut pass_ctx)?;
 
-    let buffer = pass_ctx.encoder.finish();
-    self.draw_command_buffers.as_mut().unwrap().push(buffer);
-    Ok(())
-  }
+    pub fn wgpu_view(&mut self) -> Result<Rc<wgpu::TextureView>, piet::Error> {
+        if let Some(view) = self.tex_view.as_ref() {
+            return Ok(view.clone());
+        }
+        let texture = self
+            .renderer
+            .surface
+            .get_current_texture()
+            .map_err(|e| piet::Error::NotSupported)?;
+        let view = Rc::new(texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default()));
+        self.texture = Some(texture);
+        self.tex_view = Some(view.clone());
+        Ok(view)
+    }
 
-  pub fn renderer(&self) -> &WgpuRenderer {
-    &self.renderer
-  }
+    /// Runs the given callback with a [RenderPassCtx] to enable a custom render pass.
+    pub fn custom_render_pass<F>(
+        &mut self, label: &'static str, usage: F) -> Result<(), piet::Error>
+        where F: FnOnce(&mut RenderPassCtx) -> Result<(), piet::Error> {
+        let mut pass_ctx = RenderPassCtx::new(label, self)?;
+        usage(&mut pass_ctx)?;
+
+        let buffer = pass_ctx.encoder.finish();
+        self.draw_command_buffers.as_mut().unwrap().push(buffer);
+        Ok(())
+    }
+
+    pub fn renderer(&self) -> &WgpuRenderer {
+        &self.renderer
+    }
 
     pub fn draw_svg(&mut self, svg: &Svg, rect: Rect, override_color: Option<&Color>) {
         let view_box = svg.tree.svg_node().view_box;
@@ -465,12 +465,12 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
         );
 
         self.renderer.staging_belt.borrow_mut().finish();
-      // TODO: Do we call the renderers here? How do we integrate the custom renderers.
+        // TODO: Do we call the renderers here? How do we integrate the custom renderers.
 
-      self.renderer.queue.submit(Some(encoder.finish()));
-      self.renderer.queue.submit(self.draw_command_buffers.take().unwrap());
-      self.texture.take().unwrap().present();
-      self.tex_view = None;
+        self.renderer.queue.submit(Some(encoder.finish()));
+        self.renderer.queue.submit(self.draw_command_buffers.take().unwrap());
+        self.texture.take().unwrap().present();
+        self.tex_view = None;
 
         self.renderer
             .local_pool
