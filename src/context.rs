@@ -50,17 +50,12 @@ pub struct RenderPassCtx<'ctx> {
     pub queue: &'ctx wgpu::Queue,
     view: Rc<TextureView>,
     msaa: &'ctx TextureView,
-    size: Size,
-    origin: Point,
-    scale: f64,
+    viewport_info: Option<((f64, f64), (f64, f64))>,
 }
 
 impl <'ctx> RenderPassCtx<'ctx> {
     /// Constructs a new [Self] to enable a custom render pass on the given [WgpuRenderContext].
     fn new(label: &'static str, ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
-        let size = ctx.size();
-        let origin = ctx.to_window(Point::new(0.0, 0.0));
-        let scale = ctx.renderer.scale;
         let mut encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some(label),
         });
@@ -70,10 +65,16 @@ impl <'ctx> RenderPassCtx<'ctx> {
             queue: &ctx.renderer.queue,
             view: view,
             msaa: &ctx.renderer.msaa,
-            size,
-            origin,
-            scale,
+            viewport_info: None,
         })
+    }
+
+    pub fn configure_viewport(
+      &mut self,
+      origin: (f64, f64),
+      size: (f64, f64),
+      scale: f64) {
+      self.viewport_info = Some(((origin.0 * scale, origin.1 * scale), (size.0 * scale, size.1 * scale)));
     }
 
     /// Generates a new [RenderPass] with the given label.
@@ -102,11 +103,15 @@ impl <'ctx> RenderPassCtx<'ctx> {
             depth_stencil_attachment: None,
         });
 
+        let ((x, y), (width, height)) = self.viewport_info
+            .as_ref()
+            .expect("Must have configured viewport");
+
         render_pass.set_viewport(
-          (self.origin.x * self.scale) as f32,
-          (self.origin.y * self.scale) as f32,
-          (self.size.width * self.scale) as f32,
-          (self.size.height * self.scale) as f32,
+          *x as f32,
+          *y as f32,
+          *width as f32,
+          *height as f32,
           near_plane,
           far_plane);
         render_pass
@@ -181,7 +186,9 @@ impl<'a> WgpuRenderContext<'a> {
 
     /// Runs the given callback with a [RenderPassCtx] to enable a custom render pass.
     pub fn custom_render_pass<F>(
-        &mut self, label: &'static str, usage: F) -> Result<(), piet::Error>
+        &mut self,
+        label: &'static str,
+        usage: F) -> Result<(), piet::Error>
         where F: FnOnce(&mut RenderPassCtx) -> Result<(), piet::Error> {
         let mut pass_ctx = RenderPassCtx::new(label, self)?;
         usage(&mut pass_ctx)?;

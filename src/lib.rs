@@ -10,6 +10,7 @@ pub use piet::kurbo;
 use piet::kurbo::Size;
 pub use piet::*;
 pub use svg::Svg;
+pub use wgpu;
 use svg::SvgStore;
 
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
@@ -18,6 +19,7 @@ use context::{WgpuImage, WgpuRenderContext};
 use text::{WgpuText, WgpuTextLayout, WgpuTextLayoutBuilder};
 
 pub type Piet<'a> = WgpuRenderContext<'a>;
+pub use context::RenderPassCtx;
 
 pub type Brush = context::Brush;
 
@@ -33,7 +35,7 @@ pub struct WgpuRenderer {
     instance: wgpu::Instance,
     device: Rc<wgpu::Device>,
     surface: wgpu::Surface,
-    queue: wgpu::Queue,
+    queue: Rc<wgpu::Queue>,
     format: wgpu::TextureFormat,
     staging_belt: Rc<RefCell<wgpu::util::StagingBelt>>,
     local_pool: futures::executor::LocalPool,
@@ -90,6 +92,7 @@ impl WgpuRenderer {
         let device = Rc::new(device);
         let text = WgpuText::new(device.clone(), staging_belt.clone(), encoder.clone());
         let pipeline = pipeline::Pipeline::new(&device, format, &text.cache.borrow());
+        let queue = Rc::new(queue);
 
         Ok(Self {
             instance,
@@ -106,10 +109,6 @@ impl WgpuRenderer {
             svg_store: SvgStore::new(),
             encoder,
         })
-    }
-
-    pub fn device(&self) -> &wgpu::Device {
-      self.device.as_ref()
     }
 
   pub fn scale(&self) -> f64 {
@@ -167,9 +166,14 @@ impl WgpuRenderer {
     pub(crate) fn take_encoder(&mut self) -> wgpu::CommandEncoder {
         self.encoder.take().unwrap()
     }
-  pub fn queue(&self) -> &wgpu::Queue {
-    &self.queue
-  }
+
+    pub fn queue(&self) -> &Rc<wgpu::Queue> {
+        &self.queue
+    }
+
+    pub fn device(&self) -> &Rc<wgpu::Device> {
+      &self.device
+    }
 }
 
 pub struct Device {
