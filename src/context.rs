@@ -185,11 +185,12 @@ impl<'a> WgpuRenderContext<'a> {
     }
 
     /// Runs the given callback with a [RenderPassCtx] to enable a custom render pass.
-    pub fn custom_render_pass<F>(
+    pub fn custom_render_pass<F, E>(
         &mut self,
         label: &'static str,
-        usage: F) -> Result<(), piet::Error>
-        where F: FnOnce(&mut RenderPassCtx) -> Result<(), piet::Error> {
+        usage: F) -> Result<(), E>
+        where F: FnOnce(&mut RenderPassCtx) -> Result<(), E>,
+              E: From<piet::Error> {
         let mut pass_ctx = RenderPassCtx::new(label, self)?;
         usage(&mut pass_ctx)?;
 
