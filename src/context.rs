@@ -479,29 +479,31 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
 
     fn finish(&mut self) -> Result<(), piet::Error> {
         self.renderer.ensure_encoder();
-        let mut encoder = self.renderer.take_encoder();
-
-        self.renderer.pipeline.upload_data(
-            &self.renderer.device,
-            &mut self.renderer.staging_belt.borrow_mut(),
-            &mut encoder,
-            &self.geometry,
-            &self.primitives,
-        );
-
         let view = self.wgpu_view()?;
-        self.renderer.pipeline.draw(
-            &self.renderer.device,
-            &mut encoder,
-            view.as_ref(),
-            &self.renderer.msaa,
-            &self.geometry,
-        );
+        if !self.primitives.is_empty() {
+          let mut encoder = self.renderer.take_encoder();
 
-        self.renderer.staging_belt.borrow_mut().finish();
-        // TODO: Do we call the renderers here? How do we integrate the custom renderers.
+          self.renderer.pipeline.upload_data(
+              &self.renderer.device,
+              &mut self.renderer.staging_belt.borrow_mut(),
+              &mut encoder,
+              &self.geometry,
+              &self.primitives,
+          );
 
-        self.renderer.queue.submit(Some(encoder.finish()));
+          self.renderer.pipeline.draw(
+              &self.renderer.device,
+              &mut encoder,
+              view.as_ref(),
+              &self.renderer.msaa,
+              &self.geometry,
+          );
+
+          self.renderer.staging_belt.borrow_mut().finish();
+          // TODO: Do we call the renderers here? How do we integrate the custom renderers.
+
+          self.renderer.queue.submit(Some(encoder.finish()));
+        }
         self.renderer.queue.submit(self.draw_command_buffers.take().unwrap());
         self.texture.take().unwrap().present();
         self.tex_view = None;
