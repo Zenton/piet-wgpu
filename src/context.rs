@@ -50,12 +50,17 @@ pub struct RenderPassCtx<'ctx> {
     pub queue: &'ctx wgpu::Queue,
     view: Rc<TextureView>,
     msaa: &'ctx TextureView,
+    size: Size,
+    origin: Point,
+    scale: f64,
 }
 
 impl <'ctx> RenderPassCtx<'ctx> {
     /// Constructs a new [Self] to enable a custom render pass on the given [WgpuRenderContext].
     fn new(label: &'static str, ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
-
+        let size = ctx.size();
+        let origin = ctx.to_window(Point::new(0.0, 0.0));
+        let scale = ctx.renderer.scale;
         let mut encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some(label),
         });
@@ -65,14 +70,26 @@ impl <'ctx> RenderPassCtx<'ctx> {
             queue: &ctx.renderer.queue,
             view: view,
             msaa: &ctx.renderer.msaa,
+            size,
+            origin,
+            scale,
         })
     }
 
     /// Generates a new [RenderPass] with the given label.
+    ///
+    /// The viewport will be set to a default viewport for the target widget
+    /// and a Z-depth of [0, 1].
     pub fn render_pass(&mut self, label: &'static str) -> RenderPass {
-        // TODO: Should the viewport stuff be set here?
+      self.render_pass_with_depth(label, 0.0, 1.0)
+    }
 
-        self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+    /// Generates a new [RenderPass] with the given label.
+    /// The viewport will be set to the appropriate 2D rect for the widget this
+    /// context is for and the given near/far Z.
+    pub fn render_pass_with_depth(
+      &mut self, label: &'static str, near_plane: f32, far_plane: f32) -> RenderPass {
+        let mut render_pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some(label),
             color_attachments: &[wgpu::RenderPassColorAttachment {
                 view: self.msaa,
@@ -83,7 +100,16 @@ impl <'ctx> RenderPassCtx<'ctx> {
                 }
             }],
             depth_stencil_attachment: None,
-        })
+        });
+
+        render_pass.set_viewport(
+          (self.origin.x * self.scale) as f32,
+          (self.origin.y * self.scale) as f32,
+          (self.size.width * self.scale) as f32,
+          (self.size.height * self.scale) as f32,
+          near_plane,
+          far_plane);
+        render_pass
     }
 }
 
