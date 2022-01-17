@@ -1,3 +1,4 @@
+#![allow(dead_code)] // Allow dead-code so the warnings don't fill up.
 mod context;
 mod font;
 mod layer;
@@ -5,6 +6,9 @@ mod pipeline;
 mod svg;
 mod text;
 mod transformation;
+
+#[macro_use]
+extern crate log;
 
 pub use piet::kurbo;
 use piet::kurbo::Size;

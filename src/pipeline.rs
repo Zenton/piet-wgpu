@@ -6,6 +6,7 @@ use font_kit::canvas::{Canvas, Format, RasterizationOptions};
 use font_kit::family_name::FamilyName;
 use font_kit::font::Font;
 use font_kit::hinting::HintingOptions;
+#[allow(unused_imports)]
 use font_kit::loader::Loader;
 use font_kit::source::SystemSource;
 use hashbrown::HashMap;

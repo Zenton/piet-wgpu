@@ -105,7 +105,7 @@ impl SvgStore {
                         from_linear(color.blue as f32 / 255.0),
                         fill.opacity.value() as f32,
                     ];
-                    self.fill_tess.tessellate(
+                    let result = self.fill_tess.tessellate(
                         convert_path(p),
                         &FillOptions::tolerance(0.01),
                         &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| GpuVertex {
@@ -115,6 +115,9 @@ impl SvgStore {
                             ..Default::default()
                         }),
                     );
+                    if let Err(e) = result {
+                      warn!("Error in tesselation: {:?}", e);
+                    }
                 }
 
                 if let Some(ref stroke) = p.stroke {

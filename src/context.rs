@@ -291,7 +291,7 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
         let primitive_id = self.primitives.len() as u32 - 1;
 
         if let Some(rect) = shape.as_rect() {
-            self.stroke_tess.tessellate_rectangle(
+            let result = self.stroke_tess.tessellate_rectangle(
                 &lyon::geom::Rect::new(
                     lyon::geom::Point::new(rect.x0 as f32, rect.y0 as f32),
                     lyon::geom::Size::new(rect.width() as f32, rect.height() as f32),
@@ -313,13 +313,16 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
                     }
                 }),
             );
+            if let Err(e) = result {
+              warn!("Error in tesselation: {:?}", e);
+            }
         } else if let Some(line) = shape.as_line() {
             let mut builder = lyon::path::Path::builder();
             builder.begin(lyon::geom::point(line.p0.x as f32, line.p0.y as f32));
             builder.line_to(lyon::geom::point(line.p1.x as f32, line.p1.y as f32));
             builder.close();
             let path = builder.build();
-            self.stroke_tess.tessellate_path(
+            let result = self.stroke_tess.tessellate_path(
                 &path,
                 &StrokeOptions::tolerance(0.02)
                     .with_line_width(width as f32)
@@ -338,6 +341,9 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
                     }
                 }),
             );
+            if let Err(e) = result {
+              warn!("Error in tesselation: {:?}", e);
+            }
         } else {
             let mut builder = lyon::path::Path::builder();
             let mut in_subpath = false;
@@ -373,7 +379,7 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
                 builder.end(false);
             }
             let path = builder.build();
-            self.stroke_tess.tessellate_path(
+            let result = self.stroke_tess.tessellate_path(
                 &path,
                 &StrokeOptions::tolerance(0.02)
                     .with_line_width(width as f32)
@@ -392,6 +398,9 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
                     }
                 }),
             );
+            if let Err(e) = result {
+              warn!("Error in tesselation: {:?}", e);
+            }
         }
     }
 
@@ -410,7 +419,7 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
             let Brush::Solid(color) = brush;
             let color = format_color(&color);
             let primitive_id = self.primitives.len() as u32 - 1;
-            self.fill_tess.tessellate_rectangle(
+            let result = self.fill_tess.tessellate_rectangle(
                 &lyon::geom::Rect::new(
                     lyon::geom::Point::new(rect.x0 as f32, rect.y0 as f32),
                     lyon::geom::Size::new(rect.width() as f32, rect.height() as f32),
@@ -423,6 +432,9 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
                     ..Default::default()
                 }),
             );
+            if let Err(e) = result {
+              warn!("Error in tesselation: {:?}", e);
+            }
         }
     }
 
@@ -585,7 +597,7 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
         ];
 
         let primitive_id = self.primitives.len() as u32 - 1;
-        self.fill_tess.tessellate_rectangle(
+        let result = self.fill_tess.tessellate_rectangle(
             &lyon::geom::Rect::new(
                 lyon::geom::Point::new(rect.x0 as f32, rect.y0 as f32),
                 lyon::geom::Size::new(rect.width() as f32, rect.height() as f32),
@@ -598,6 +610,9 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
                 ..Default::default()
             }),
         );
+        if let Err(e) = result {
+          warn!("Error in tesselation: {:?}", e);
+        }
         self.add_primitive();
     }
 
