@@ -77,6 +77,7 @@ pub struct GpuVertex {
     pub(crate) tex: f32,
     pub(crate) tex_pos: [f32; 2],
     pub(crate) primitive_id: u32,
+    pub(crate) layer_depth: f32,
 }
 
 unsafe impl bytemuck::Pod for GpuVertex {}
@@ -91,6 +92,7 @@ impl Default for GpuVertex {
             tex: 0.0,
             tex_pos: [0.0, 0.0],
             primitive_id: 0,
+            layer_depth: 0.0,
         }
     }
 }
@@ -130,15 +132,15 @@ impl Pipeline {
         });
 
         let vertices = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Globals ubo"),
+            label: Some("Vertices ubo"),
             size: std::mem::size_of::<GpuVertex>() as u64,
-            usage: wgpu::BufferUsages::VERTEX,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let indices = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Globals ubo"),
+            label: Some("Indices ubo"),
             size: std::mem::size_of::<u32>() as u64,
-            usage: wgpu::BufferUsages::INDEX,
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -247,6 +249,7 @@ impl Pipeline {
                         3 => Float32,
                         4 => Float32x2,
                         5 => Uint32,
+                        6 => Float32,
                     ),
                 }],
             },
@@ -422,6 +425,7 @@ impl Pipeline {
                 }],
                 depth_stencil_attachment: None,
             });
+            // TODO: Attach depth.
 
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.bind_group, &[]);
@@ -655,7 +659,7 @@ impl Cache {
             HintingOptions::None,
             RasterizationOptions::GrayscaleAa,
         )
-        .map_err(|_| piet::Error::MissingFont)?;
+            .map_err(|_| piet::Error::MissingFont)?;
 
         let mut offset = [0, 0];
         let mut inserted = false;

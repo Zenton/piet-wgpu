@@ -22,7 +22,7 @@ struct Primitives {
 [[group(0), binding(1)]] var font_sampler: sampler;
 [[group(0), binding(2)]] var font_tex: texture_2d<f32>;
 [[group(0), binding(3)]] var<storage> primitives: Primitives;
-    
+
 struct VertexInput {
     [[location(0)]] v_pos: vec2<f32>;
     [[location(1)]] v_translate: vec2<f32>;
@@ -30,6 +30,7 @@ struct VertexInput {
     [[location(3)]] v_tex: f32;
     [[location(4)]] v_tex_pos: vec2<f32>;
     [[location(5)]] v_primitive_id: u32;
+    [[location(6)]] v_layer_depth: f32;
 };
 
 struct VertexOutput {
@@ -42,6 +43,7 @@ struct VertexOutput {
     [[location(5)]] tex_pos: vec2<f32>;
     [[location(6)]] clip: f32;
     [[location(7)]] clip_rect: vec4<f32>;
+    [[location(8)]] layer_depth: f32;
 };
 
 [[stage(vertex)]]
@@ -49,7 +51,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let primitive = primitives.data[input.v_primitive_id];
 
     var out: VertexOutput;
-    
+
     var invert_y: vec2<f32> = vec2<f32>(1.0, -1.0);
 
     let transform = mat3x3<f32>(
@@ -61,11 +63,11 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     var transformed_pos = transform * vec3<f32>(input.v_pos.x, input.v_pos.y, 1.0);
 
     var v_pos: vec2<f32> = vec2<f32>(transformed_pos.x, transformed_pos.y);
-    
+
     var translated_pos: vec2<f32> = (v_pos * primitive.u_scale + primitive.u_translate + input.v_translate) * globals.u_scale;
-    
+
     var pos: vec2<f32> = (translated_pos / globals.u_resolution * 2.0 - vec2<f32>(1.0, 1.0)) * invert_y;
-    
+
     out.position = vec4<f32>(pos, 0.0, 1.0);
     out.color = input.v_color;
     out.blur_radius = primitive.u_blur_radius;
@@ -73,25 +75,26 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.pos = input.v_pos;
     out.tex = input.v_tex;
     out.tex_pos = input.v_tex_pos;
+    out.layer_depth = input.v_layer_depth;
     out.clip = primitive.u_clip;
     out.clip_rect = primitive.u_clip_rect;
-    
+
     if (out.clip > 0.0) {
         var left_top = vec2<f32>(primitive.u_clip_rect.x, primitive.u_clip_rect.y);
         var left_top = left_top * globals.u_scale;
-        
+
         var right_bottom = vec2<f32>(primitive.u_clip_rect.z, primitive.u_clip_rect.w);
         var right_bottom = right_bottom * globals.u_scale;
         out.clip_rect = vec4<f32>(left_top, right_bottom);
     }
-    
+
     return out;
 }
 
 fn erf(x: vec4<f32>) -> vec4<f32> {
     var s: vec4<f32> = sign(x);
     var a: vec4<f32> = abs(x);
-    var r: vec4<f32> = 1.0 + (0.278393 + (0.230389 + 0.078108 * (a * a)) * a) * a; 
+    var r: vec4<f32> = 1.0 + (0.278393 + (0.230389 + 0.078108 * (a * a)) * a) * a;
     r = r * r;
     return s - s / (r * r);
 }
@@ -102,10 +105,16 @@ fn box_shadow(lower: vec2<f32>, upper: vec2<f32>, point: vec2<f32>, radius: f32)
     return (integral.z - integral.x) * (integral.w - integral.y);
 }
 
+struct FragOutput {
+  [[location(0)]] color: vec4<f32>;
+  [[builtin(frag_depth)]] depth: f32;
+};
+
 [[stage(fragment)]]
+//fn main(input: VertexOutput) -> FragOutput {
 fn fs_main(input: VertexOutput) -> [[location(0)]] vec4<f32> {
     var color: vec4<f32> = input.color;
-    
+
     if (input.blur_radius > 0.0) {
         color.w = color.w * box_shadow(
            vec2<f32>(input.rect.x, input.rect.y),
@@ -132,12 +141,17 @@ fn fs_main(input: VertexOutput) -> [[location(0)]] vec4<f32> {
         }
         color.w = color.w * alpha;
     }
-    
+
     if (input.clip > 0.0) {
         if (input.position.x < input.clip_rect.x || input.position.x > input.clip_rect.z || input.position.y < input.clip_rect.y || input.position.y > input.clip_rect.w) {
             discard;
         }
     }
-    
+
+    var output: FragOutput;
+    output.color = color;
+    output.depth = input.layer_depth;
+
+    // return output;
     return color;
 }
