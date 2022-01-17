@@ -14,10 +14,10 @@ use lyon::lyon_tessellation::{
 };
 use lyon::tessellation;
 use piet::{
-    kurbo::{Affine, Point, Rect, Shape, Size, Vec2},
-    Color, FontFamily, Image, IntoBrush, RenderContext,
+    kurbo::{Affine, Point, Rect, Shape, Vec2},
+    Color, Image, IntoBrush, RenderContext,
 };
-use wgpu::{CommandEncoder, RenderPass, RenderPassColorAttachment, TextureView};
+use wgpu::{CommandEncoder, RenderPass, TextureView};
 
 pub struct WgpuRenderContext<'a> {
     pub(crate) renderer: &'a mut WgpuRenderer,
@@ -56,7 +56,7 @@ pub struct RenderPassCtx<'ctx> {
 impl <'ctx> RenderPassCtx<'ctx> {
     /// Constructs a new [Self] to enable a custom render pass on the given [WgpuRenderContext].
     fn new(label: &'static str, ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
-        let mut encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        let encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some(label),
         });
         let view = ctx.wgpu_view()?;
@@ -175,7 +175,7 @@ impl<'a> WgpuRenderContext<'a> {
             .renderer
             .surface
             .get_current_texture()
-            .map_err(|e| piet::Error::NotSupported)?;
+            .map_err(|_e| piet::Error::NotSupported)?;
         let view = Rc::new(texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default()));
@@ -275,12 +275,12 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
 
     fn gradient(
         &mut self,
-        gradient: impl Into<piet::FixedGradient>,
+        _gradient: impl Into<piet::FixedGradient>,
     ) -> Result<Self::Brush, piet::Error> {
         todo!()
     }
 
-    fn clear(&mut self, region: impl Into<Option<Rect>>, color: Color) {}
+    fn clear(&mut self, _region: impl Into<Option<Rect>>, _color: Color) {}
 
     fn stroke(&mut self, shape: impl Shape, brush: &impl piet::IntoBrush<Self>, width: f64) {
         let brush = brush.make_brush(self, || shape.bounding_box()).into_owned();
@@ -397,10 +397,10 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
 
     fn stroke_styled(
         &mut self,
-        shape: impl piet::kurbo::Shape,
-        brush: &impl piet::IntoBrush<Self>,
-        width: f64,
-        style: &piet::StrokeStyle,
+        _shape: impl piet::kurbo::Shape,
+        _brush: &impl piet::IntoBrush<Self>,
+        _width: f64,
+        _style: &piet::StrokeStyle,
     ) {
     }
 
@@ -428,8 +428,8 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
 
     fn fill_even_odd(
         &mut self,
-        shape: impl piet::kurbo::Shape,
-        brush: &impl piet::IntoBrush<Self>,
+        _shape: impl piet::kurbo::Shape,
+        _brush: &impl piet::IntoBrush<Self>,
     ) {
     }
 
@@ -528,36 +528,36 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
 
     fn make_image(
         &mut self,
-        width: usize,
-        height: usize,
-        buf: &[u8],
-        format: piet::ImageFormat,
+        _width: usize,
+        _height: usize,
+        _buf: &[u8],
+        _format: piet::ImageFormat,
     ) -> Result<Self::Image, piet::Error> {
         todo!()
     }
 
     fn draw_image(
         &mut self,
-        image: &Self::Image,
-        dst_rect: impl Into<piet::kurbo::Rect>,
-        interp: piet::InterpolationMode,
+        _image: &Self::Image,
+        _dst_rect: impl Into<piet::kurbo::Rect>,
+        _interp: piet::InterpolationMode,
     ) {
         todo!()
     }
 
     fn draw_image_area(
         &mut self,
-        image: &Self::Image,
-        src_rect: impl Into<piet::kurbo::Rect>,
-        dst_rect: impl Into<piet::kurbo::Rect>,
-        interp: piet::InterpolationMode,
+        _image: &Self::Image,
+        _src_rect: impl Into<piet::kurbo::Rect>,
+        _dst_rect: impl Into<piet::kurbo::Rect>,
+        _interp: piet::InterpolationMode,
     ) {
         todo!()
     }
 
     fn capture_image_area(
         &mut self,
-        src_rect: impl Into<piet::kurbo::Rect>,
+        _src_rect: impl Into<piet::kurbo::Rect>,
     ) -> Result<Self::Image, piet::Error> {
         todo!()
     }
@@ -618,8 +618,8 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
 impl<'a> IntoBrush<WgpuRenderContext<'a>> for Brush {
     fn make_brush<'b>(
         &'b self,
-        piet: &mut WgpuRenderContext,
-        bbox: impl FnOnce() -> piet::kurbo::Rect,
+        _piet: &mut WgpuRenderContext,
+        _bbox: impl FnOnce() -> piet::kurbo::Rect,
     ) -> std::borrow::Cow<'b, Brush> {
         Cow::Borrowed(self)
     }

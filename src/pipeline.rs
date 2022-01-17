@@ -1,4 +1,4 @@
-use std::hash::BuildHasherDefault;
+
 use std::num::{NonZeroU32, NonZeroU64};
 use std::sync::Arc;
 
@@ -13,15 +13,14 @@ use include_dir::include_dir;
 use include_dir::Dir;
 use linked_hash_map::LinkedHashMap;
 use lyon::lyon_tessellation::{
-    BuffersBuilder, FillOptions, FillTessellator, FillVertex, FillVertexConstructor,
-    StrokeVertexConstructor, VertexBuffers,
+    VertexBuffers,
 };
-use lyon::tessellation;
+
 use pathfinder_geometry::transform2d::Transform2F;
 use pathfinder_geometry::vector::{Vector2F, Vector2I};
-use piet::kurbo::{Affine, Point, Rect, Size};
-use piet::{Color, FontFamily, FontWeight};
-use wgpu::util::DeviceExt;
+use piet::kurbo::{Point, Rect, Size};
+use piet::{FontFamily, FontWeight};
+
 
 const FONTS_DIR: Dir = include_dir!("./fonts");
 const DEFAULT_FONT: &[u8] = include_bytes!("../fonts/CascadiaCode-Regular.otf");
@@ -389,7 +388,7 @@ impl Pipeline {
 
     pub fn draw(
         &mut self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
         msaa: &wgpu::TextureView,

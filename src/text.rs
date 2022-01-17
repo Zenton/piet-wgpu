@@ -2,8 +2,7 @@ use std::{cell::RefCell, collections::HashMap, ops::Range, rc::Rc};
 
 use font_kit::source::SystemSource;
 use lyon::lyon_tessellation::{
-    BuffersBuilder, FillOptions, FillTessellator, FillVertex, StrokeOptions, StrokeTessellator,
-    StrokeVertex, VertexBuffers,
+    FillTessellator, StrokeTessellator, VertexBuffers,
 };
 use piet::kurbo::Line;
 use piet::Color;
@@ -14,8 +13,8 @@ use piet::{
 };
 use unicode_width::UnicodeWidthChar;
 
-use crate::context::{format_color, from_linear, WgpuRenderContext};
-use crate::pipeline::{Cache, GlyphMetricInfo, GlyphPosInfo, GpuVertex};
+use crate::context::{format_color, WgpuRenderContext};
+use crate::pipeline::{Cache, GlyphPosInfo, GpuVertex};
 
 #[derive(Clone)]
 pub struct WgpuText {
@@ -324,11 +323,11 @@ impl Text for WgpuText {
     type TextLayoutBuilder = WgpuTextLayoutBuilder;
     type TextLayout = WgpuTextLayout;
 
-    fn font_family(&mut self, family_name: &str) -> Option<FontFamily> {
+    fn font_family(&mut self, _family_name: &str) -> Option<FontFamily> {
         todo!()
     }
 
-    fn load_font(&mut self, data: &[u8]) -> Result<piet::FontFamily, piet::Error> {
+    fn load_font(&mut self, _data: &[u8]) -> Result<piet::FontFamily, piet::Error> {
         todo!()
     }
 
@@ -346,7 +345,7 @@ impl TextLayoutBuilder for WgpuTextLayoutBuilder {
         self
     }
 
-    fn alignment(self, alignment: piet::TextAlignment) -> Self {
+    fn alignment(self, _alignment: piet::TextAlignment) -> Self {
         self
     }
 
@@ -404,11 +403,11 @@ impl TextLayout for WgpuTextLayout {
         &self.text
     }
 
-    fn line_text(&self, line_number: usize) -> Option<&str> {
+    fn line_text(&self, _line_number: usize) -> Option<&str> {
         Some(&self.text)
     }
 
-    fn line_metric(&self, line_number: usize) -> Option<LineMetric> {
+    fn line_metric(&self, _line_number: usize) -> Option<LineMetric> {
         let mut metric = LineMetric {
             start_offset: 0,
             end_offset: self.text.len(),
@@ -427,7 +426,7 @@ impl TextLayout for WgpuTextLayout {
         0
     }
 
-    fn hit_test_point(&self, point: Point) -> HitTestPoint {
+    fn hit_test_point(&self, _point: Point) -> HitTestPoint {
         HitTestPoint::default()
     }
 
