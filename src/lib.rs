@@ -18,12 +18,13 @@ pub use wgpu;
 use svg::SvgStore;
 
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
+use wgpu::{PresentMode, TextureUsages};
 
 use context::{WgpuImage, WgpuRenderContext};
 use text::{WgpuText, WgpuTextLayout, WgpuTextLayoutBuilder};
 
 pub type Piet<'a> = WgpuRenderContext<'a>;
-pub use context::RenderPassCtx;
+pub use context::{RenderPassCtx, DepthTexture};
 
 pub type Brush = context::Brush;
 
@@ -46,6 +47,7 @@ pub struct WgpuRenderer {
     msaa: wgpu::TextureView,
     size: Size,
     svg_store: SvgStore,
+    depth_texture: Rc<DepthTexture>,
 
     text: WgpuText,
 
@@ -97,6 +99,16 @@ impl WgpuRenderer {
         let text = WgpuText::new(device.clone(), staging_belt.clone(), encoder.clone());
         let pipeline = pipeline::Pipeline::new(&device, format, &text.cache.borrow());
         let queue = Rc::new(queue);
+        let depth_texture = Rc::new(DepthTexture::new(
+            &device,
+            &wgpu::SurfaceConfiguration {
+                usage: TextureUsages::RENDER_ATTACHMENT,
+                format,
+                width: 1,
+                height: 1,
+                present_mode: PresentMode::Fifo,
+            },
+            "Piet WGPU Depth texture"));
 
         Ok(Self {
             instance,
@@ -112,6 +124,7 @@ impl WgpuRenderer {
             pipeline,
             svg_store: SvgStore::new(),
             encoder,
+            depth_texture,
         })
     }
 
@@ -143,6 +156,16 @@ impl WgpuRenderer {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         });
         self.msaa = msaa_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        self.depth_texture = Rc::new(DepthTexture::new(
+            &self.device,
+            &wgpu::SurfaceConfiguration {
+                usage: TextureUsages::RENDER_ATTACHMENT,
+                format: self.format,
+                width: size.width as _,
+                height: size.height as _,
+                present_mode: PresentMode::Fifo,
+            },
+            "Piet WGPU Depth texture"));
         self.pipeline.size = size;
     }
 

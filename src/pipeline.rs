@@ -21,6 +21,7 @@ use pathfinder_geometry::transform2d::Transform2F;
 use pathfinder_geometry::vector::{Vector2F, Vector2I};
 use piet::kurbo::{Point, Rect, Size};
 use piet::{FontFamily, FontWeight};
+use crate::DepthTexture;
 
 
 const FONTS_DIR: Dir = include_dir!("./fonts");
@@ -271,7 +272,13 @@ impl Pipeline {
                 unclipped_depth: false,
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: DepthTexture::DEPTH_FORMAT,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
             multisample: wgpu::MultisampleState {
                 count: 4,
                 mask: !0,
@@ -394,6 +401,7 @@ impl Pipeline {
         view: &wgpu::TextureView,
         msaa: &wgpu::TextureView,
         geometry: &VertexBuffers<GpuVertex, u32>,
+        depth_texture: &DepthTexture,
     ) {
         let fill_range = 0..(geometry.indices.len() as u32);
 
@@ -423,9 +431,17 @@ impl Pipeline {
                         store: true,
                     },
                 }],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: &depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
-            // TODO: Attach depth.
+
+            // TODO: Handle depth for custom render widgets.
 
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.bind_group, &[]);

@@ -45,27 +45,65 @@ struct State {
     n_clip: usize,
 }
 
+pub struct DepthTexture {
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) view: wgpu::TextureView,
+}
+
+impl DepthTexture {
+    pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float; // 1.
+
+    pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration, label: &str) -> Self {
+        // Implementation originally from https://sotrh.github.io/learn-wgpu/beginner/tutorial8-depth/#a-pixels-depth
+        let size = wgpu::Extent3d { // 2.
+            width: config.width,
+            height: config.height,
+            depth_or_array_layers: 1,
+        };
+        let desc = wgpu::TextureDescriptor {
+            label: Some(label),
+            size,
+            mip_level_count: 1,
+            sample_count: 4, // Sample count should be parameterised, for now it is hard coded for my specific uses.
+            dimension: wgpu::TextureDimension::D2,
+            format: Self::DEPTH_FORMAT,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT // 3.
+                | wgpu::TextureUsages::TEXTURE_BINDING,
+        };
+        let texture = device.create_texture(&desc);
+
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        Self { texture, view }
+    }
+}
+
 pub struct RenderPassCtx<'ctx> {
     encoder: CommandEncoder,
     pub queue: &'ctx wgpu::Queue,
     view: Rc<TextureView>,
     msaa: &'ctx TextureView,
     viewport_info: Option<((f64, f64), (f64, f64))>,
+    depth_texture: Rc<DepthTexture>,
 }
 
 impl <'ctx> RenderPassCtx<'ctx> {
     /// Constructs a new [Self] to enable a custom render pass on the given [WgpuRenderContext].
-    fn new(label: &'static str, ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
+    fn new(
+        label: &'static str,
+        ctx: &'ctx mut WgpuRenderContext) -> Result<Self, piet::Error> {
         let encoder = ctx.renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some(label),
         });
         let view = ctx.wgpu_view()?;
+        let depth_texture = ctx.wgpu_depth_texture();
         Ok(Self {
             encoder,
             queue: &ctx.renderer.queue,
             view: view,
             msaa: &ctx.renderer.msaa,
             viewport_info: None,
+            depth_texture,
         })
     }
 
@@ -89,7 +127,10 @@ impl <'ctx> RenderPassCtx<'ctx> {
     /// The viewport will be set to the appropriate 2D rect for the widget this
     /// context is for and the given near/far Z.
     pub fn render_pass_with_depth(
-      &mut self, label: &'static str, near_plane: f32, far_plane: f32) -> RenderPass {
+      &mut self,
+      label: &'static str,
+      near_plane: f32,
+      far_plane: f32) -> RenderPass {
         let mut render_pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some(label),
             color_attachments: &[wgpu::RenderPassColorAttachment {
@@ -100,7 +141,14 @@ impl <'ctx> RenderPassCtx<'ctx> {
                     store: true,
                 }
             }],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &self.depth_texture.view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                }),
+                stencil_ops: None,
+            }),
         });
 
         let ((x, y), (width, height)) = self.viewport_info
@@ -182,6 +230,10 @@ impl<'a> WgpuRenderContext<'a> {
         self.texture = Some(texture);
         self.tex_view = Some(view.clone());
         Ok(view)
+    }
+
+    pub fn wgpu_depth_texture(&mut self) -> Rc<DepthTexture> {
+        self.renderer.depth_texture.clone()
     }
 
     /// Runs the given callback with a [RenderPassCtx] to enable a custom render pass.
@@ -509,6 +561,7 @@ impl<'a> RenderContext for WgpuRenderContext<'a> {
               view.as_ref(),
               &self.renderer.msaa,
               &self.geometry,
+              &self.renderer.depth_texture
           );
 
           self.renderer.staging_belt.borrow_mut().finish();
