@@ -134,21 +134,19 @@ impl WgpuRenderer {
 
     pub fn set_size(&mut self, size: Size) {
         self.size = size;
-        let width = (size.width as f64 * self.scale()).round() as u32;
-        let height = (size.height as f64 * self.scale()).round() as u32;
         let sc_desc = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: self.format,
-            width,
-            height,
+            width: size.width as u32,
+            height: size.height as u32,
             present_mode: wgpu::PresentMode::Fifo,
         };
         self.surface.configure(&self.device, &sc_desc);
         let msaa_texture = self.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Multisampled frame descriptor"),
             size: wgpu::Extent3d {
-                width,
-                height,
+                width: size.width as u32,
+                height: size.height as u32,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -163,8 +161,8 @@ impl WgpuRenderer {
             &wgpu::SurfaceConfiguration {
                 usage: TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
-                width,
-                height,
+                width: size.width as _,
+                height: size.height as _,
                 present_mode: PresentMode::Fifo,
             },
             "Piet WGPU Depth texture"));
